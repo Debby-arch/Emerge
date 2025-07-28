@@ -1,37 +1,55 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Leaf, Eye, EyeOff } from 'lucide-react';
+"use client";
+
+import type React from "react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Leaf, Eye, EyeOff } from "lucide-react";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [userType, setUserType] = useState<"patient" | "doctor">("patient");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    const success = await login(email, password);
-    if (success) {
-      navigate('/');
-    } else {
-      setError('Invalid email or password');
+    try {
+      const success = await login(email, password, userType);
+      if (success) {
+        navigate("/");
+      } else {
+        setError("Invalid email, password, or user type");
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please try again.");
     }
   };
 
   const demoAccounts = [
-    { email: 'patient@demo.com', role: 'Patient', password: 'demo123' },
-    { email: 'doctor@demo.com', role: 'Doctor', password: 'demo123' },
-    { email: 'admin@demo.com', role: 'Admin', password: 'demo123' }
+    {
+      email: "patient@demo.com",
+      role: "Patient",
+      password: "demo123",
+      userType: "patient" as const,
+    },
+    {
+      email: "doctor@demo.com",
+      role: "Doctor",
+      password: "demo123",
+      userType: "doctor" as const,
+    },
   ];
 
-  const fillDemoAccount = (email: string) => {
+  const fillDemoAccount = (email: string, userType: "patient" | "doctor") => {
     setEmail(email);
-    setPassword('demo123');
+    setPassword("demo123");
+    setUserType(userType);
   };
 
   return (
@@ -41,15 +59,19 @@ const Login: React.FC = () => {
           <div className="flex justify-center">
             <Leaf className="h-12 w-12 text-green-600" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">Sign in to your account</h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            Sign in to your account
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-green-600 hover:text-green-500">
+            Or{" "}
+            <Link
+              to="/register"
+              className="font-medium text-green-600 hover:text-green-500"
+            >
               create a new account
             </Link>
           </p>
         </div>
-
         <div className="bg-white rounded-lg shadow-md p-6">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
@@ -59,7 +81,42 @@ const Login: React.FC = () => {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account Type
+              </label>
+              <div className="flex space-x-4">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    value="patient"
+                    checked={userType === "patient"}
+                    onChange={(e) =>
+                      setUserType(e.target.value as "patient" | "doctor")
+                    }
+                    className="text-green-600 focus:ring-green-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Patient</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    value="doctor"
+                    checked={userType === "doctor"}
+                    onChange={(e) =>
+                      setUserType(e.target.value as "patient" | "doctor")
+                    }
+                    className="text-green-600 focus:ring-green-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Doctor</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <input
@@ -75,14 +132,17 @@ const Login: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="mt-1 relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -108,7 +168,7 @@ const Login: React.FC = () => {
               disabled={isLoading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
@@ -118,16 +178,19 @@ const Login: React.FC = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Accounts</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Demo Accounts
+                </span>
               </div>
             </div>
-
             <div className="mt-4 grid grid-cols-1 gap-2">
               {demoAccounts.map((account) => (
                 <button
                   key={account.email}
                   type="button"
-                  onClick={() => fillDemoAccount(account.email)}
+                  onClick={() =>
+                    fillDemoAccount(account.email, account.userType)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   {account.role} Demo ({account.email})
@@ -142,3 +205,4 @@ const Login: React.FC = () => {
 };
 
 export default Login;
+
