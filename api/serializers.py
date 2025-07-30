@@ -46,6 +46,105 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+class DoctorRegistrationSerializer(serializers.ModelSerializer):
+    # User fields
+    email = serializers.EmailField()
+    username = serializers.CharField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+    phone_number = serializers.CharField(required=False)
+    date_of_birth = serializers.DateField(required=False)
+
+    # Doctor fields
+    specialization = serializers.CharField()
+    license_number = serializers.CharField()
+    years_of_experience = serializers.IntegerField(default=0)
+    consultation_fee = serializers.DecimalField(
+        max_digits=10, decimal_places=2, default=0
+    )
+    bio = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Doctor
+        fields = (
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
+            "phone_number",
+            "date_of_birth",
+            "specialization",
+            "license_number",
+            "years_of_experience",
+            "consultation_fee",
+            "bio",
+        )
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError("Passwords don't match")
+        return attrs
+
+    def create(self, validated_data):
+        # Extract user fields
+        user_fields = {
+            "email": validated_data.pop("email"),
+            "username": validated_data.pop("username"),
+            "first_name": validated_data.pop("first_name"),
+            "last_name": validated_data.pop("last_name"),
+            "phone_number": validated_data.pop("phone_number", ""),
+            "date_of_birth": validated_data.pop("date_of_birth", None),
+        }
+
+        password = validated_data.pop("password")
+        validated_data.pop("password_confirm")
+
+        # Create user
+        user = User.objects.create_user(
+            **user_fields, password=password, user_type="doctor"
+        )
+
+        # Create doctor profile with remaining fields
+        doctor = Doctor.objects.create(user=user, **validated_data)
+        return doctor
+
+
+class PatientRegistrationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, validators=[validate_password])
+    password_confirm = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "username",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
+            "phone_number",
+            "date_of_birth",
+        )
+
+    def validate(self, attrs):
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError("Passwords don't match")
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("password_confirm")
+        user = User.objects.create_user(**validated_data, user_type="patient")
+        Patient.objects.create(user=user)
+        return user
+
+
+# Updated view
+
+
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()

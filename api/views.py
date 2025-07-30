@@ -11,6 +11,8 @@ from .serializers import (
     UserLoginSerializer,
     DoctorSerializer,
     DoctorAvailabilitySerializer,
+    DoctorRegistrationSerializer,
+    PatientRegistrationSerializer,
     AppointmentSerializer,
     AppointmentCreateSerializer,
     PatientSerializer,
@@ -29,10 +31,20 @@ def get_tokens_for_user(user):
 @permission_classes([permissions.AllowAny])
 def register_user(request):
     """Register a new user (patient or doctor)"""
-    serializer = UserRegistrationSerializer(data=request.data)
+    print(request.data)
+
+    user_type = request.data.get("user_type")
+
+    if user_type == "doctor":
+        serializer = DoctorRegistrationSerializer(data=request.data)
+    else:
+        serializer = PatientRegistrationSerializer(data=request.data)
+
     if serializer.is_valid():
-        user = serializer.save()
+        result = serializer.save()
+        user = result.user if user_type == "doctor" else result
         tokens = get_tokens_for_user(user)
+
         return Response(
             {
                 "message": "User registered successfully",
